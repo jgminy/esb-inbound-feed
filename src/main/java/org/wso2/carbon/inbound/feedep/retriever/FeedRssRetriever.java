@@ -53,9 +53,7 @@ public class FeedRssRetriever extends FeedGenericRetriever implements FeedRetrie
 	private String feedType;
 	private DateFormat feedDateFormat = null;
 
-	FeedRegistryHandler feedRegistryHandler;
-
-	Date lastUpdated;
+	private FeedRegistryHandler feedRegistryHandler;
 
 	public FeedRssRetriever(long scanInterval, String feedURL, String feedType, FeedRegistryHandler feedRegistryHandler,
 			String name, String feedDateFormat) {
