@@ -16,64 +16,71 @@
 
 package org.wso2.carbon.inbound.feedep;
 
+import java.util.Properties;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.synapse.core.SynapseEnvironment;
 import org.wso2.carbon.inbound.endpoint.protocol.generic.GenericPollingConsumer;
-
-import java.util.Properties;
+import org.wso2.carbon.inbound.feedep.retriever.FeedAtomRetriever;
+import org.wso2.carbon.inbound.feedep.retriever.FeedRetriever;
+import org.wso2.carbon.inbound.feedep.retriever.FeedRssRetriever;
+import org.wso2.carbon.inbound.feedep.retriever.FeedTextRetriever;
 
 public class FeedInbound extends GenericPollingConsumer {
-    private static final Log log = LogFactory.getLog(FeedInbound.class.getName());
-    private String injectingSeq;
-    private String onErrorSeq;
-    private boolean sequential;
-    private String host;
-    private String feedType;
-    private FeedRetrieval consume;
-    private final FeedRegistryHandler registryHandler;
-    private String dateFormat;
-    private long scanInterval;
+	private static final Log log = LogFactory.getLog(FeedInbound.class);
 
-    public FeedInbound(Properties properties, String name,
-                       SynapseEnvironment synapseEnvironment, long scanInterval,
-                       String injectingSeq, String onErrorSeq, boolean coordination,
-                       boolean sequential) {
-        super(properties, name, synapseEnvironment, scanInterval,
-                injectingSeq, onErrorSeq, coordination, sequential);
-        registryHandler = new FeedRegistryHandler();
-        this.name = name;
-        this.scanInterval = scanInterval;
-        this.sequential = true;
-        this.host = properties.getProperty(FeedEPConstant.FEED_URL);
-        this.feedType = properties.getProperty(FeedEPConstant.FEED_TYPE);
-        if (!StringUtils.isEmpty(properties.getProperty(FeedEPConstant.FEED_TIME_FORMAT))) {
-            this.dateFormat = properties.getProperty(FeedEPConstant.FEED_TIME_FORMAT);
-        }
-        this.sequential = sequential;
-        this.coordination = true;
-        this.coordination = coordination;
-        this.injectingSeq = injectingSeq;
-        this.onErrorSeq = onErrorSeq;
-        this.synapseEnvironment = synapseEnvironment;
-        init();
-    }
+	private String feedURL;
+	private String feedType;
+	private String feedDateFormat = FeedConstant.RSS_FEED_DATE_FORMAT;
 
-    public void destroy() {
-        if (registryHandler.readFromRegistry(name) != null) {
-            registryHandler.deleteFromRegistry(name);
-        }
-    }
+	private FeedRetriever feedRetriever = null;
+	private final FeedRegistryHandler registryHandler = new FeedRegistryHandler();
 
-    public Object poll() {
-        consume.execute();
-        return null;
-    }
+	public FeedInbound(Properties properties, String name, SynapseEnvironment synapseEnvironment, long scanInterval,
+			String injectingSeq, String onErrorSeq, boolean coordination, boolean sequential) {
+		super(properties, name, synapseEnvironment, scanInterval, injectingSeq, onErrorSeq, coordination, sequential);
+		log.info("Initialize Feed polling consumer: " + this.name);
 
-    private void init() {
-        FeedInject rssInject = new FeedInject(injectingSeq, onErrorSeq, sequential,
-                synapseEnvironment, FeedEPConstant.FEED_FORMAT);
-        consume = new FeedRetrieval(rssInject, scanInterval, host, feedType, registryHandler, name, dateFormat);
-    }
+		this.feedURL = getInboundProperties().getProperty(FeedConstant.FEED_URL);
+		this.feedType = getInboundProperties().getProperty(FeedConstant.FEED_TYPE);
+		if (!StringUtils.isEmpty(getInboundProperties().getProperty(FeedConstant.FEED_TIME_FORMAT))) {
+			this.feedDateFormat = getInboundProperties().getProperty(FeedConstant.FEED_TIME_FORMAT);
+		}
+
+		log.info("feedURL        : " + this.feedURL);
+		log.info("feedType       : " + this.feedType);
+		log.info("feedDateFormat : " + this.feedDateFormat);
+
+		if (FeedConstant.FEED_TYPE_RSS.equalsIgnoreCase(this.feedType)) {
+			this.feedRetriever = new FeedRssRetriever(scanInterval, this.feedURL, this.feedType, this.registryHandler,
+					this.name, this.feedDateFormat);
+		}
+
+		if (FeedConstant.FEED_TYPE_ATOM.equalsIgnoreCase(this.feedType)) {
+			this.feedRetriever = new FeedAtomRetriever(scanInterval, this.feedURL, this.feedType, this.registryHandler,
+					this.name, this.feedDateFormat);
+		}
+
+		if (this.feedRetriever == null) {
+			this.feedRetriever = new FeedTextRetriever(scanInterval, this.feedURL, this.feedType, this.registryHandler,
+					this.name, this.feedDateFormat);
+		}
+
+		log.info("Feed polling consumer Initialized.");
+	}
+
+	public void destroy() {
+		this.registryHandler.deleteResourceFromRegistry(this.name);
+		log.info("Destroy invoked.");
+	}
+
+	public Object poll() {
+		String out = this.feedRetriever.execute();
+		if (out != null) {
+			this.injectMessage(out, FeedConstant.CONTENT_TYPE_APPLICATION_XML);
+		}
+		return null;
+	}
 }
