@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.text.DateFormat;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -19,22 +20,13 @@ import org.xml.sax.SAXException;
 public class FeedTextRetriever extends FeedGenericRetriever implements FeedRetriever {
 	private static final Log log = LogFactory.getLog(FeedTextRetriever.class);
 
-	private String feedURL;
-	private String feedType;
-
-	public FeedTextRetriever(long scanInterval, String feedURL, String feedType,
-			FeedRegistryHandler feedRegistryHandler, String name, String feedDateFormat) {
-
-		this.feedURL = feedURL;
-		this.feedType = feedType;
-
+	public FeedTextRetriever(String name, long scanInterval, String feedURL, String feedType, DateFormat feedDateFormat,
+			FeedRegistryHandler feedRegistryHandler) {
+		super(name, scanInterval, feedURL, feedType, feedDateFormat, feedRegistryHandler);
 	}
 
-	public String execute() {
-		return consume();
-	}
-
-	private String consume() {
+	@Override
+	protected String consume() {
 		InputStream in = null;
 		try {
 			in = new URL(feedURL).openStream();
@@ -53,7 +45,7 @@ public class FeedTextRetriever extends FeedGenericRetriever implements FeedRetri
 			log.trace("root: " + document.getDocumentElement());
 
 			return documentToString(document);
-			
+
 		} catch (MalformedURLException e) {
 			log.error("Given url doesn't have feed ", e);
 		} catch (IOException e) {

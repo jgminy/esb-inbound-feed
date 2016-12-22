@@ -24,6 +24,27 @@ import org.wso2.carbon.inbound.feedep.FeedRegistryHandler;
 public abstract class FeedGenericRetriever implements FeedRetriever {
 	static final Log log = LogFactory.getLog(FeedGenericRetriever.class);
 
+	protected String name;
+	protected long scanInterval;
+	protected long lastRanTime = 0;
+	protected String feedURL;
+	protected String feedType;
+	protected DateFormat feedDateFormat = null;
+	protected FeedRegistryHandler feedRegistryHandler;
+
+	public FeedGenericRetriever(String name, long scanInterval, String feedURL, String feedType,
+			DateFormat feedDateFormat, FeedRegistryHandler feedRegistryHandler) {
+		super();
+		this.name = name;
+		this.scanInterval = scanInterval;
+		this.feedURL = feedURL;
+		this.feedType = feedType;
+		this.feedDateFormat = feedDateFormat;
+		this.feedRegistryHandler = feedRegistryHandler;
+	}
+
+	abstract protected String consume();
+
 	protected String documentToString(Document document) {
 		try {
 			TransformerFactory transformerFactory = TransformerFactory.newInstance();
@@ -41,8 +62,24 @@ public abstract class FeedGenericRetriever implements FeedRetriever {
 		return null;
 	}
 
-	protected String getFeedString(Document document, String lastFeedUpdatedDate,
-			FeedRegistryHandler feedRegistryHandler, DateFormat feedDateFormat, String name) throws ParseException {
+	@Override
+	public String execute() {
+		log.debug("Execute: " + this.name);
+		String out = null;
+		long currentTime = (new Date()).getTime();
+
+		if (((this.lastRanTime + this.scanInterval) <= currentTime)) {
+			this.lastRanTime = currentTime;
+			log.debug("LastRanTime: " + this.lastRanTime);
+			out = consume();
+		} else {
+			log.debug("Skip cycle since concurrent rate is higher than the scan interval: " + this.name);
+		}
+		log.debug("End: " + this.name);
+		return out;
+	}
+
+	protected String getFeedString(Document document, String lastFeedUpdatedDate) throws ParseException {
 		log.debug("Start: " + name);
 
 		Date lastFeedUpdated = null;

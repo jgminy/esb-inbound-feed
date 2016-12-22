@@ -16,6 +16,9 @@
 
 package org.wso2.carbon.inbound.feedep;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Locale;
 import java.util.Properties;
 
 import org.apache.commons.lang.StringUtils;
@@ -31,10 +34,6 @@ import org.wso2.carbon.inbound.feedep.retriever.FeedTextRetriever;
 public class FeedInbound extends GenericPollingConsumer {
 	private static final Log log = LogFactory.getLog(FeedInbound.class);
 
-	private String feedURL;
-	private String feedType;
-	private String feedDateFormat = FeedConstant.RSS_FEED_DATE_FORMAT;
-
 	private FeedRetriever feedRetriever = null;
 	private final FeedRegistryHandler registryHandler = new FeedRegistryHandler();
 
@@ -43,29 +42,35 @@ public class FeedInbound extends GenericPollingConsumer {
 		super(properties, name, synapseEnvironment, scanInterval, injectingSeq, onErrorSeq, coordination, sequential);
 		log.info("Initialize Feed polling consumer: " + this.name);
 
-		this.feedURL = getInboundProperties().getProperty(FeedConstant.FEED_URL);
-		this.feedType = getInboundProperties().getProperty(FeedConstant.FEED_TYPE);
+		String feedURL;
+		String feedType;
+		String feedDateFormatText = FeedConstant.RSS_FEED_DATE_FORMAT;
+
+		feedURL = getInboundProperties().getProperty(FeedConstant.FEED_URL);
+		feedType = getInboundProperties().getProperty(FeedConstant.FEED_TYPE);
 		if (!StringUtils.isEmpty(getInboundProperties().getProperty(FeedConstant.FEED_TIME_FORMAT))) {
-			this.feedDateFormat = getInboundProperties().getProperty(FeedConstant.FEED_TIME_FORMAT);
+			feedDateFormatText = getInboundProperties().getProperty(FeedConstant.FEED_TIME_FORMAT);
 		}
 
-		log.info("feedURL        : " + this.feedURL);
-		log.info("feedType       : " + this.feedType);
-		log.info("feedDateFormat : " + this.feedDateFormat);
+		DateFormat feedDateFormat = new SimpleDateFormat(feedDateFormatText, Locale.ENGLISH);
 
-		if (FeedConstant.FEED_TYPE_RSS.equalsIgnoreCase(this.feedType)) {
-			this.feedRetriever = new FeedRssRetriever(scanInterval, this.feedURL, this.feedType, this.registryHandler,
-					this.name, this.feedDateFormat);
+		log.info("feedURL        : " + feedURL);
+		log.info("feedType       : " + feedType);
+		log.info("feedDateFormat : " + feedDateFormatText);
+
+		if (FeedConstant.FEED_TYPE_RSS.equalsIgnoreCase(feedType)) {
+			this.feedRetriever = new FeedRssRetriever(this.name, scanInterval, feedURL, feedType, feedDateFormat,
+					this.registryHandler);
 		}
 
-		if (FeedConstant.FEED_TYPE_ATOM.equalsIgnoreCase(this.feedType)) {
-			this.feedRetriever = new FeedAtomRetriever(scanInterval, this.feedURL, this.feedType, this.registryHandler,
-					this.name, this.feedDateFormat);
+		if (FeedConstant.FEED_TYPE_ATOM.equalsIgnoreCase(feedType)) {
+			this.feedRetriever = new FeedAtomRetriever(this.name, scanInterval, feedURL, feedType, feedDateFormat,
+					this.registryHandler);
 		}
 
 		if (this.feedRetriever == null) {
-			this.feedRetriever = new FeedTextRetriever(scanInterval, this.feedURL, this.feedType, this.registryHandler,
-					this.name, this.feedDateFormat);
+			this.feedRetriever = new FeedTextRetriever(this.name, scanInterval, feedURL, feedType, feedDateFormat,
+					this.registryHandler);
 		}
 
 		log.info("Feed polling consumer Initialized.");
