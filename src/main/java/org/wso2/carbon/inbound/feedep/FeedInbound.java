@@ -77,7 +77,7 @@ public class FeedInbound extends GenericPollingConsumer {
 	}
 
 	public void destroy() {
-		this.registryHandler.deleteResourceFromRegistry(this.name);
+		// this.registryHandler.deleteResourceFromRegistry(this.name);
 		log.info("Destroy invoked.");
 	}
 
