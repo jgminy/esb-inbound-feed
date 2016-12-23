@@ -46,10 +46,10 @@ public class FeedInbound extends GenericPollingConsumer {
 		String feedType;
 		String feedDateFormatText = FeedConstant.RSS_FEED_DATE_FORMAT;
 
-		feedURL = getInboundProperties().getProperty(FeedConstant.FEED_URL);
-		feedType = getInboundProperties().getProperty(FeedConstant.FEED_TYPE);
+		feedURL = getPropertyValue(FeedConstant.FEED_URL);
+		feedType = getPropertyValue(FeedConstant.FEED_TYPE);
 		if (!StringUtils.isEmpty(getInboundProperties().getProperty(FeedConstant.FEED_TIME_FORMAT))) {
-			feedDateFormatText = getInboundProperties().getProperty(FeedConstant.FEED_TIME_FORMAT);
+			feedDateFormatText = getPropertyValue(FeedConstant.FEED_TIME_FORMAT);
 		}
 
 		DateFormat feedDateFormat = new SimpleDateFormat(feedDateFormatText, Locale.ENGLISH);
@@ -74,6 +74,15 @@ public class FeedInbound extends GenericPollingConsumer {
 		}
 
 		log.info("Feed polling consumer Initialized.");
+	}
+
+	private String getPropertyValue(String key) {
+		String value = getInboundProperties().getProperty(key);
+		if (value.startsWith(FeedConstant.GET_PROTERTY_FUNCTION)) {
+			value = (String) this.synapseEnvironment.getSynapseConfiguration().getEntry(
+					value.trim().substring(FeedConstant.GET_PROTERTY_FUNCTION.length() + 2, value.length() - 2));
+		}
+		return value;
 	}
 
 	public void destroy() {

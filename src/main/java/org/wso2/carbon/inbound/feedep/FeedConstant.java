@@ -16,6 +16,8 @@
 package org.wso2.carbon.inbound.feedep;
 
 public class FeedConstant {
+	public static final String GET_PROTERTY_FUNCTION = "get-property";
+	
 	public static final String FEED_URL = "feed.url";
 	public static final String FEED_TYPE = "feed.type";
 	public static final String FEED_TIME_FORMAT = "feed.timeformat";
