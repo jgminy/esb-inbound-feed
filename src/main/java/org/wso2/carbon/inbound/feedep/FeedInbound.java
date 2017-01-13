@@ -16,10 +16,16 @@
 
 package org.wso2.carbon.inbound.feedep;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Locale;
 import java.util.Properties;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
@@ -27,11 +33,14 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.synapse.core.SynapseEnvironment;
 import org.apache.synapse.util.xpath.SynapseXPath;
 import org.jaxen.JaxenException;
+import org.w3c.dom.Document;
+import org.w3c.dom.NodeList;
 import org.wso2.carbon.inbound.endpoint.protocol.generic.GenericPollingConsumer;
 import org.wso2.carbon.inbound.feedep.retriever.FeedAtomRetriever;
 import org.wso2.carbon.inbound.feedep.retriever.FeedRetriever;
 import org.wso2.carbon.inbound.feedep.retriever.FeedRssRetriever;
 import org.wso2.carbon.inbound.feedep.retriever.FeedTextRetriever;
+import org.xml.sax.SAXException;
 
 public class FeedInbound extends GenericPollingConsumer {
 	private static final Log log = LogFactory.getLog(FeedInbound.class);
@@ -44,21 +53,64 @@ public class FeedInbound extends GenericPollingConsumer {
 		super(properties, name, synapseEnvironment, scanInterval, injectingSeq, onErrorSeq, coordination, sequential);
 		log.info("Initialize Feed polling consumer: " + this.name);
 
+		String epRepositoryConfig;
 		String feedURL;
 		String feedType;
 		String feedDateFormatText = FeedConstant.RSS_FEED_DATE_FORMAT;
 
-		feedURL = getPropertyValue(FeedConstant.FEED_URL);
-		feedType = getPropertyValue(FeedConstant.FEED_TYPE);
-		if (!StringUtils.isEmpty(getInboundProperties().getProperty(FeedConstant.FEED_TIME_FORMAT))) {
-			feedDateFormatText = getPropertyValue(FeedConstant.FEED_TIME_FORMAT);
+		if (!StringUtils.isEmpty(getInboundProperties().getProperty(FeedConstant.EP_REPOSITORY_CONFIG))) {
+
+			epRepositoryConfig = getInboundProperties().getProperty(FeedConstant.EP_REPOSITORY_CONFIG);
+			log.info("epRepositoryConfig : " + epRepositoryConfig);
+
+			try {
+
+				SynapseXPath xPath = new SynapseXPath(FeedConstant.GET_PROTERTY_FUNCTION_PREFIX + epRepositoryConfig
+						+ FeedConstant.GET_PROTERTY_FUNCTION_SUFFIX);
+				String epRepositoryConfigContent = xPath.stringValueOf(synapseEnvironment.createMessageContext());
+				log.trace("epRepositoryConfigContent: " + epRepositoryConfigContent);
+
+				DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+				DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
+				Document document = dBuilder
+						.parse(new ByteArrayInputStream(epRepositoryConfigContent.getBytes("UTF-8")));
+				document.getDocumentElement().normalize();
+
+				log.trace("root: " + document.getDocumentElement());
+
+				NodeList nodeList;
+				nodeList = document.getElementsByTagName(FeedConstant.FEED_URL);
+				feedURL = nodeList.item(0).getTextContent();
+				nodeList = document.getElementsByTagName(FeedConstant.FEED_TYPE);
+				feedType = nodeList.item(0).getTextContent();
+				nodeList = document.getElementsByTagName(FeedConstant.FEED_TIME_FORMAT);
+				if (nodeList.getLength() > 0) {
+					feedDateFormatText = nodeList.item(0).getTextContent();
+				}
+
+			} catch (ParserConfigurationException e) {
+				throw new IllegalArgumentException("error configuring from registry", e);
+			} catch (SAXException e) {
+				throw new IllegalArgumentException("error configuring from registry", e);
+			} catch (IOException e) {
+				throw new IllegalArgumentException("error configuring from registry", e);
+			} catch (JaxenException e) {
+				throw new IllegalArgumentException("error configuring from registry", e);
+			}
+
+		} else {
+			feedURL = getInboundProperties().getProperty(FeedConstant.FEED_URL);
+			feedType = getInboundProperties().getProperty(FeedConstant.FEED_TYPE);
+			if (!StringUtils.isEmpty(getInboundProperties().getProperty(FeedConstant.FEED_TIME_FORMAT))) {
+				feedDateFormatText = getInboundProperties().getProperty(FeedConstant.FEED_TIME_FORMAT);
+			}
 		}
 
 		DateFormat feedDateFormat = new SimpleDateFormat(feedDateFormatText, Locale.ENGLISH);
 
-		log.info("feedURL        : " + feedURL);
-		log.info("feedType       : " + feedType);
-		log.info("feedDateFormat : " + feedDateFormatText);
+		log.info("feedURL            : " + feedURL);
+		log.info("feedType           : " + feedType);
+		log.info("feedDateFormat     : " + feedDateFormatText);
 
 		if (FeedConstant.FEED_TYPE_RSS.equalsIgnoreCase(feedType)) {
 			this.feedRetriever = new FeedRssRetriever(this.name, scanInterval, feedURL, feedType, feedDateFormat,
@@ -76,21 +128,6 @@ public class FeedInbound extends GenericPollingConsumer {
 		}
 
 		log.info("Feed polling consumer Initialized.");
-	}
-
-	private String getPropertyValue(String key) {
-		String value = getInboundProperties().getProperty(key);
-		try {
-			SynapseXPath xpath = new SynapseXPath(value);
-			value = xpath.stringValueOf(synapseEnvironment.createMessageContext()); 
-		} catch (JaxenException e) {
-			log.error("Feed polling consumer error.", e);
-		}
-//		if (value.startsWith(FeedConstant.GET_PROTERTY_FUNCTION)) {
-//			value = (String) this.synapseEnvironment.getSynapseConfiguration().getEntry(
-//					value.trim().substring(FeedConstant.GET_PROTERTY_FUNCTION.length() + 2, value.length() - 2));
-//		}
-		return value;
 	}
 
 	public void destroy() {

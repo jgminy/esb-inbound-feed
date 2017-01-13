@@ -16,20 +16,23 @@
 package org.wso2.carbon.inbound.feedep;
 
 public class FeedConstant {
-	public static final String GET_PROTERTY_FUNCTION = "get-property";
-	
+	public static final String GET_PROTERTY_FUNCTION_PREFIX = "get-property('registry', '";	
+	public static final String GET_PROTERTY_FUNCTION_SUFFIX = "')";	
+	public static final String EP_REPOSITORY_CONFIG = "ep.repository.config";
+
+	public static final String REGISTRY_TIME_FORMAT = "yyyy/MM/dd HH:mm:ss Z";
+	public static final String REGISTRY_EP_PATH_CONFIG_SUFFIX = "_config";
+	public static final String REGISTRY_FEEDEP_PATH_PREFIX = "repository/components/org.wso2.carbon.inbound.feedep/";
+	public static final String REGISTRY_FEEDEP_UPDATE_DATE_PROP = "last.updated";
+
+	public static final String CONTENT_TYPE_APPLICATION_XML = "application/xml";
+
 	public static final String FEED_URL = "feed.url";
 	public static final String FEED_TYPE = "feed.type";
 	public static final String FEED_TIME_FORMAT = "feed.timeformat";
 	public static final String FEED_FORMAT = "TEXT";
 	public static final String FEED_TYPE_RSS = "RSS";
 	public static final String FEED_TYPE_ATOM = "Atom";
-
+	
 	public static final String RSS_FEED_DATE_FORMAT = "EEE, d MMM yyyy HH:mm:ss Z";
-
-	public static final String REGISTRY_TIME_FORMAT = "yyyy/MM/dd HH:mm:ss Z";
-	public static final String REGISTRY_FEEDEP_PATH_PREFIX = "repository/components/org.wso2.carbon.inbound.feedep/";
-	public static final String REGISTRY_FEEDEP_UPDATE_DATE_PROP = "last.updated";
-
-	public static final String CONTENT_TYPE_APPLICATION_XML = "application/xml";
 }
