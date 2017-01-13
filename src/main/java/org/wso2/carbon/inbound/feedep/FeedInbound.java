@@ -25,6 +25,8 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.synapse.core.SynapseEnvironment;
+import org.apache.synapse.util.xpath.SynapseXPath;
+import org.jaxen.JaxenException;
 import org.wso2.carbon.inbound.endpoint.protocol.generic.GenericPollingConsumer;
 import org.wso2.carbon.inbound.feedep.retriever.FeedAtomRetriever;
 import org.wso2.carbon.inbound.feedep.retriever.FeedRetriever;
@@ -78,10 +80,16 @@ public class FeedInbound extends GenericPollingConsumer {
 
 	private String getPropertyValue(String key) {
 		String value = getInboundProperties().getProperty(key);
-		if (value.startsWith(FeedConstant.GET_PROTERTY_FUNCTION)) {
-			value = (String) this.synapseEnvironment.getSynapseConfiguration().getEntry(
-					value.trim().substring(FeedConstant.GET_PROTERTY_FUNCTION.length() + 2, value.length() - 2));
+		try {
+			SynapseXPath xpath = new SynapseXPath(value);
+			value = xpath.stringValueOf(synapseEnvironment.createMessageContext()); 
+		} catch (JaxenException e) {
+			log.error("Feed polling consumer error.", e);
 		}
+//		if (value.startsWith(FeedConstant.GET_PROTERTY_FUNCTION)) {
+//			value = (String) this.synapseEnvironment.getSynapseConfiguration().getEntry(
+//					value.trim().substring(FeedConstant.GET_PROTERTY_FUNCTION.length() + 2, value.length() - 2));
+//		}
 		return value;
 	}
 
