@@ -64,20 +64,20 @@ public class FeedRssRetriever extends FeedGenericRetriever implements FeedRetrie
 
 			log.trace("root: " + document.getDocumentElement());
 
-			NodeList nodeList = document.getElementsByTagName("pubDate");
+			NodeList nodeList = document.getElementsByTagName("lastBuildDate");
 			for (int i = 0; i < nodeList.getLength(); i++) {
 				log.trace("nodeList[" + i + "]: " + nodeList.item(i).getNodeName() + " : "
 						+ nodeList.item(i).getTextContent());
 			}
 
-			String lastPubDate = null;
+			String lastBuildDate = null;
 
 			if (nodeList != null) {
-				lastPubDate = nodeList.item(0).getTextContent();
-				log.debug("lastPubDate: " + lastPubDate);
+				lastBuildDate = nodeList.item(0).getTextContent();
+				log.debug("lastBuildDate: " + lastBuildDate);
 
-				if (lastPubDate != null) {
-					return getFeedString(document, lastPubDate);
+				if (lastBuildDate != null) {
+					return getFeedString(document, lastBuildDate);
 				}
 			}
 		} catch (ParseException e) {
